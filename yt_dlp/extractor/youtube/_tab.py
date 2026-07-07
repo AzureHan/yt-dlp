@@ -2306,7 +2306,41 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
             # /about is no longer a tab
             if original_tab_id == 'about':
-                return self._empty_playlist(item_id, data)
+                about_data = self._empty_playlist(item_id, data)
+                try:
+                    continuation = data["header"]["pageHeaderRenderer"]["content"]["pageHeaderViewModel"]["description"]["descriptionPreviewViewModel"]["rendererContext"]["commandContext"]["onTap"]["innertubeCommand"]["showEngagementPanelEndpoint"]["engagementPanel"]["engagementPanelSectionListRenderer"]["content"]["sectionListRenderer"]["contents"][0]["itemSectionRenderer"]["contents"][0]["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"]
+                    if continuation:
+                        headers = self.generate_api_headers(
+                            ytcfg=ytcfg,
+                            visitor_data=self._extract_visitor_data(data, ytcfg)
+                        )
+                        about_response = self._extract_response(
+                            item_id=f'{item_id} about',
+                            ep='browse',
+                            headers=headers,
+                            ytcfg=ytcfg,
+                            query={'continuation': continuation},
+                            note='Downloading about page details',
+                            fatal=False
+                        )
+                        country = traverse_obj(
+                            about_response,
+                            (
+                                'onResponseReceivedEndpoints', ...,
+                                'appendContinuationItemsAction',
+                                'continuationItems',...,
+                                'aboutChannelRenderer',
+                                'metadata',
+                                'aboutChannelViewModel',
+                                'country'
+                            )
+                        )
+                        if country and len(country) > 0:
+                            about_data.update({'country': country[0]})
+                except Exception as e:
+                    self.report_warning(f'Failed to extract detailed about info: {e}')
+
+                return about_data
 
             if not original_tab_id and selected_tab_name:
                 self.to_screen('Downloading all uploads of the channel. '

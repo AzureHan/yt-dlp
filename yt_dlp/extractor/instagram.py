@@ -190,10 +190,10 @@ class InstagramBaseIE(InfoExtractor):
                 'uploader_id': ('user', 'pk', {str_or_none}),
                 'uploader': ('user', 'full_name', {str}),
                 'timestamp': ('taken_at', {int_or_none}),
-                'view_count': ('view_count', {int_or_none}),
                 'like_count': ('like_count', {int_or_none}),
                 'comment_count': ('comment_count', {int_or_none}),
             }),
+            'view_count': traverse_obj(product_info, (('view_count', 'play_count', 'ig_play_count'), {int_or_none}, any)) or 0,
             'http_headers': {
                 'Referer': 'https://www.instagram.com/',
             },

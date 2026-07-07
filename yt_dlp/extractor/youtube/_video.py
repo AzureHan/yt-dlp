@@ -4476,6 +4476,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         (('commandMetadata', 'webCommandMetadata', 'url'), ('browseEndpoint', 'canonicalBaseUrl')),
                         {str}), get_all=False))
 
+            if channel_handle or channel_id:
+                from ._tab import YoutubeTabIE
+                try:
+                    channel_about_url = (
+                        f'https://www.youtube.com/{channel_handle}/about' if channel_handle
+                        else f'https://www.youtube.com/channel/{channel_id}/about'
+                    )
+                    tab_ie = YoutubeTabIE(self._downloader)
+                    channel_data = tab_ie._real_extract(channel_about_url)
+                    if 'country' in channel_data:
+                        info['country'] = channel_data['country']
+                except Exception as e:
+                    self.report_warning(f'Failed to retrieve channel tab info: {e}')
+
             rows = try_get(
                 vsir,
                 lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'],
