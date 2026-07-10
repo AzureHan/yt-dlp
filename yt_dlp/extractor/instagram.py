@@ -163,6 +163,7 @@ class InstagramBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
+            'numeric_id': traverse_obj(product_media, ('pk', {str_or_none})),
             'formats': formats,
             'duration': traverse_obj(product_media, ('video_duration', {float_or_none})),
             'thumbnails': list(reversed(traverse_obj(product_media, (
@@ -189,6 +190,7 @@ class InstagramBaseIE(InfoExtractor):
                 'channel': ('user', 'username', {str}),
                 'uploader_id': ('user', 'pk', {str_or_none}),
                 'uploader': ('user', 'full_name', {str}),
+                'numeric_id': ('pk', {str_or_none}),
                 'timestamp': ('taken_at', {int_or_none}),
                 'like_count': ('like_count', {int_or_none}),
                 'comment_count': ('comment_count', {int_or_none}),
