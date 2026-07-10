@@ -223,18 +223,6 @@ class InstagramBaseIE(InfoExtractor):
             '__post_extractor': self.extract_comments(info_dict.get('id')) if get_comments else None,
         }
 
-    def _fetch_user_profile(self, username):
-        self.write_debug(f'Fetching user profile for {username}')
-        response = self._download_json(
-            f'{self._API_BASE_URL}/users/web_profile_info/', username,
-            fatal=False, errnote='User profile extraction failed',
-            note=f'Downloading user profile for {username}',
-            headers=self._api_headers, query={'username': username}) or {}
-        follower_count = traverse_obj(response,
-            ('data', 'user', 'edge_followed_by', 'count', {int_or_none}))
-        self.write_debug(f'User profile for {username}: follower_count={follower_count}')
-        return {'channel_follower_count': follower_count} if follower_count is not None else {}
-
     def _get_comments(self, video_id):
         comments_info = self._download_json(
             f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/?can_support_threading=true&permalink_enabled=false', video_id,
@@ -446,16 +434,11 @@ class InstagramIE(InstagramBaseIE):
 
         if self._is_logged_in:
             try:
-                product_info = self._download_json(
+                return self._extract_product(self._download_json(
                     f'{self._API_BASE_URL}/media/{media_id}/info/', video_id,
                     'Downloading video info', 'Video info extraction failed',
                     impersonate=self._can_impersonate and self._is_web_app,
-                    headers=self._api_headers)['items'][0]
-                result = self._extract_product(product_info)
-                username = traverse_obj(result, ('channel', {str}))
-                if username:
-                    result.update(self._fetch_user_profile(username))
-                return result
+                    headers=self._api_headers)['items'][0])
             except ExtractorError as e:
                 if not (isinstance(e.cause, HTTPError) and self._is_login_redirect(e.cause.response.url)):
                     raise
@@ -538,9 +521,6 @@ class InstagramIE(InstagramBaseIE):
                 f'{bug_reports_message(before=",")}', expected=True)
 
         info_dict = self._extract_product(product_info, video_id=video_id, get_comments=False)
-        username = traverse_obj(info_dict, ('channel', {str}))
-        if username:
-            info_dict.update(self._fetch_user_profile(username))
         is_playlist = info_dict.get('_type') == 'playlist'
         if not is_playlist and not info_dict.get('formats'):
             self.raise_no_formats('There is no video in this post', expected=True)
